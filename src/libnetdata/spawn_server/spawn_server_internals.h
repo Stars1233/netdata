@@ -6,6 +6,7 @@
 #include "../libnetdata.h"
 #include "spawn_server.h"
 #include "spawn_library.h"
+#include "log-forwarder.h"
 
 #if defined(OS_WINDOWS)
 #define SPAWN_SERVER_VERSION_WINDOWS 1
@@ -62,14 +63,16 @@ struct spawn_server {
 #endif
 
 #if defined(SPAWN_SERVER_VERSION_WINDOWS)
+    LOG_FORWARDER *log_forwarder;
 #endif
 };
 
 struct spawn_instance {
     size_t request_id;
     int sock;
-    int write_fd;
-    int read_fd;
+    int write_fd;       // the child's input pipe, writing side
+    int read_fd;        // the child's output pipe, reading side
+    int stderr_fd;
     pid_t child_pid;
 
 #if defined(SPAWN_SERVER_VERSION_UV)
