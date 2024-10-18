@@ -85,6 +85,7 @@ struct lqs_extension {
 #define LQS_SOURCE_TYPE             SD_JOURNAL_FILE_SOURCE_TYPE
 #define LQS_SOURCE_TYPE_ALL         SDJF_ALL
 #define LQS_SOURCE_TYPE_NONE        SDJF_NONE
+#define LQS_PARAMETER_SOURCE_NAME   "Journal Sources" // this is how it is shown to users
 #define LQS_FUNCTION_GET_INTERNAL_SOURCE_TYPE(value) get_internal_source_type(value)
 #define LQS_FUNCTION_SOURCE_TO_JSON_ARRAY(wb) available_journal_file_sources_to_json_array(wb)
 #include "libnetdata/facets/logs_query_status.h"
@@ -752,7 +753,7 @@ static int netdata_systemd_journal_query(BUFFER *wb, LOGS_QUERY_STATUS *lqs) {
         for(size_t f = 0; f < files_used ;f++)
             dictionary_acquired_item_release(journal_files_registry, file_items[f]);
 
-        return rrd_call_function_error(wb, "not modified", HTTP_RESP_NOT_MODIFIED);
+        return rrd_call_function_error(wb, "No new data since the previous call.", HTTP_RESP_NOT_MODIFIED);
     }
 
     // sort the files, so that they are optimal for facets
@@ -910,7 +911,7 @@ static int netdata_systemd_journal_query(BUFFER *wb, LOGS_QUERY_STATUS *lqs) {
     switch (status) {
         case ND_SD_JOURNAL_OK:
             if(lqs->rq.if_modified_since && !lqs->c.rows_useful)
-                return rrd_call_function_error(wb, "no useful logs, not modified", HTTP_RESP_NOT_MODIFIED);
+                return rrd_call_function_error(wb, "No additional useful data since the previous call.", HTTP_RESP_NOT_MODIFIED);
             break;
 
         case ND_SD_JOURNAL_TIMED_OUT:
@@ -918,19 +919,19 @@ static int netdata_systemd_journal_query(BUFFER *wb, LOGS_QUERY_STATUS *lqs) {
             break;
 
         case ND_SD_JOURNAL_CANCELLED:
-            return rrd_call_function_error(wb, "client closed connection", HTTP_RESP_CLIENT_CLOSED_REQUEST);
+            return rrd_call_function_error(wb, "Request cancelled.", HTTP_RESP_CLIENT_CLOSED_REQUEST);
 
         case ND_SD_JOURNAL_NOT_MODIFIED:
-            return rrd_call_function_error(wb, "not modified", HTTP_RESP_NOT_MODIFIED);
+            return rrd_call_function_error(wb, "No new data since the previous call.", HTTP_RESP_NOT_MODIFIED);
 
         case ND_SD_JOURNAL_FAILED_TO_OPEN:
-            return rrd_call_function_error(wb, "failed to open journal", HTTP_RESP_INTERNAL_SERVER_ERROR);
+            return rrd_call_function_error(wb, "Failed to open systemd journal file.", HTTP_RESP_INTERNAL_SERVER_ERROR);
 
         case ND_SD_JOURNAL_FAILED_TO_SEEK:
-            return rrd_call_function_error(wb, "failed to seek in journal", HTTP_RESP_INTERNAL_SERVER_ERROR);
+            return rrd_call_function_error(wb, "Failed to seek in systemd journal file.", HTTP_RESP_INTERNAL_SERVER_ERROR);
 
         default:
-            return rrd_call_function_error(wb, "unknown status", HTTP_RESP_INTERNAL_SERVER_ERROR);
+            return rrd_call_function_error(wb, "Unknown status", HTTP_RESP_INTERNAL_SERVER_ERROR);
     }
 
     buffer_json_member_add_uint64(wb, "status", HTTP_RESP_OK);
